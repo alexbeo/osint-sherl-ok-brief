@@ -1,0 +1,924 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OSINT-SHERL-Ok</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;1,7..72,400&display=swap">
+<style>
+/* Макет: досье на одной оси — колонка чтения 68ch, широкие кадры приложения выходят на всю ширину 1180px,
+   тёплая нейтраль «Основы» днём и сине-серая ночью; смелость — только в заголовке на Literata и тёмном кадре графа. */
+:root {
+  --bg: oklch(0.987 0.003 80);
+  --surface: oklch(1 0 0);
+  --sunken: oklch(0.972 0.004 80);
+  --line: oklch(0.906 0.007 76);
+  --line-strong: oklch(0.735 0.010 75);
+  --text: oklch(0.240 0.010 70);
+  --text-2: oklch(0.440 0.010 70);
+  --text-3: oklch(0.515 0.010 72);
+  --accent: oklch(0.505 0.086 218);
+  --accent-text: oklch(0.445 0.080 218);
+  --accent-subtle: oklch(0.952 0.022 218);
+  --risk-red: oklch(0.520 0.150 33);
+  --risk-amb: oklch(0.530 0.105 65);
+  --grade-bg: oklch(0.240 0.010 70);
+  --grade-fg: oklch(1 0 0);
+  --grade2-bg: oklch(0.40 0.010 70);
+  --shot-shadow: 0 1px 2px oklch(0.24 0.01 70 / .06), 0 18px 40px -22px oklch(0.24 0.01 70 / .35);
+
+  --font-ui: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --font-read: "Literata", Georgia, "Times New Roman", serif;
+
+  --t-cap: 0.78rem; --t-sm: 0.875rem; --t-body: 1rem; --t-lg: 1.125rem;
+  --t-h3: 1.25rem; --t-h2: clamp(1.6rem, 2.6vw, 2.1rem); --t-h1: clamp(2.1rem, 5.2vw, 3.9rem);
+  --wide: 1180px; --read: 68ch;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: oklch(0.192 0.012 255); --surface: oklch(0.217 0.012 255); --sunken: oklch(0.165 0.012 255);
+    --line: oklch(0.300 0.012 255); --line-strong: oklch(0.480 0.012 255);
+    --text: oklch(0.940 0.005 255); --text-2: oklch(0.800 0.007 255); --text-3: oklch(0.705 0.009 255);
+    --accent: oklch(0.790 0.070 218); --accent-text: oklch(0.790 0.070 218); --accent-subtle: oklch(0.295 0.036 218);
+    --risk-red: oklch(0.770 0.120 33); --risk-amb: oklch(0.820 0.115 82);
+    --grade-bg: oklch(0.940 0.005 255); --grade-fg: oklch(0.192 0.012 255); --grade2-bg: oklch(0.78 0.010 255);
+    --shot-shadow: 0 0 0 1px oklch(0.300 0.012 255), 0 18px 40px -22px oklch(0 0 0 / .7);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: oklch(0.192 0.012 255); --surface: oklch(0.217 0.012 255); --sunken: oklch(0.165 0.012 255);
+  --line: oklch(0.300 0.012 255); --line-strong: oklch(0.480 0.012 255);
+  --text: oklch(0.940 0.005 255); --text-2: oklch(0.800 0.007 255); --text-3: oklch(0.705 0.009 255);
+  --accent: oklch(0.790 0.070 218); --accent-text: oklch(0.790 0.070 218); --accent-subtle: oklch(0.295 0.036 218);
+  --risk-red: oklch(0.770 0.120 33); --risk-amb: oklch(0.820 0.115 82);
+  --grade-bg: oklch(0.940 0.005 255); --grade-fg: oklch(0.192 0.012 255); --grade2-bg: oklch(0.78 0.010 255);
+  --shot-shadow: 0 0 0 1px oklch(0.300 0.012 255), 0 18px 40px -22px oklch(0 0 0 / .7);
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-padding-top: 72px; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 400 var(--t-body)/1.6 var(--font-ui);
+  padding-inline: max(16px, env(safe-area-inset-left, 0px));
+  padding-block: 0 64px;
+}
+img { max-width: 100%; height: auto; display: block; }
+a { color: var(--accent-text); text-underline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+h1, h2, h3 { text-wrap: balance; margin: 0; }
+p { margin: 0; }
+
+.wrap { max-width: var(--wide); margin-inline: auto; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.label {
+  font-family: var(--font-mono); font-size: var(--t-cap); letter-spacing: .08em; text-transform: uppercase;
+  color: var(--text-3);
+}
+
+/* Верхняя строка: знак и переключатель языка */
+.bar {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5;
+  margin-inline: calc(-1 * max(16px, env(safe-area-inset-left, 0px)));
+  padding: 12px max(16px, env(safe-area-inset-left, 0px));
+  background: color-mix(in oklch, var(--bg) 88%, transparent);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.bar .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.mark { font-family: var(--font-mono); font-weight: 500; font-size: .95rem; letter-spacing: .02em; color: var(--text); }
+.mark span { color: var(--text-3); font-weight: 400; }
+.langs { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 6px; overflow: hidden; }
+.langs button {
+  font: 500 var(--t-sm)/1 var(--font-mono); letter-spacing: .06em; color: var(--text-2);
+  background: transparent; border: 0; padding: 8px 12px; cursor: pointer; min-width: 44px;
+}
+.langs button + button { border-left: 1px solid var(--line-strong); }
+.langs button[aria-pressed="true"] { background: var(--text); color: var(--bg); }
+.langs button:hover:not([aria-pressed="true"]) { background: var(--sunken); color: var(--text); }
+
+/* Герой */
+.hero { display: grid; gap: 28px; padding-block: 56px 32px; }
+.hero h1 {
+  font-family: var(--font-read); font-weight: 400; font-size: var(--t-h1); line-height: 1.08;
+  letter-spacing: -0.018em; max-width: 20ch;
+}
+.hero h1 em { font-style: italic; color: var(--accent-text); }
+.lead { font-size: var(--t-lg); color: var(--text-2); max-width: var(--read); line-height: 1.65; }
+.facts {
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0;
+  border-block: 1px solid var(--line); margin-top: 8px;
+}
+.fact { padding: 18px 20px 18px 0; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.fact + .fact { padding-left: 20px; border-left: 1px solid var(--line); }
+.fact b { font-family: var(--font-mono); font-weight: 500; font-size: clamp(1.4rem, 2.6vw, 1.9rem); line-height: 1; letter-spacing: -0.01em; }
+.fact span { font-size: var(--t-sm); color: var(--text-2); line-height: 1.45; }
+
+figure { margin: 0; display: grid; gap: 10px; min-width: 0; }
+.shot { border-radius: 10px; overflow: hidden; box-shadow: var(--shot-shadow); border: 1px solid var(--line); background: var(--surface); }
+figcaption { font-size: var(--t-sm); color: var(--text-3); line-height: 1.5; max-width: var(--read); }
+.hero figure { margin-top: 12px; }
+
+/* Разделы */
+section.block { padding-block: 72px 0; display: grid; gap: 28px; }
+.head { display: grid; gap: 10px; max-width: var(--read); }
+.head h2 { font-family: var(--font-read); font-weight: 400; font-size: var(--t-h2); line-height: 1.18; letter-spacing: -0.01em; }
+.head p { color: var(--text-2); font-size: var(--t-lg); }
+
+/* Для кого */
+.who { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border-top: 1px solid var(--line-strong); }
+.who article { padding: 22px 24px 4px 0; display: grid; gap: 14px; align-content: start; min-width: 0; }
+.who article + article { padding-left: 24px; border-left: 1px solid var(--line); }
+.who h3 { font-size: var(--t-h3); font-weight: 600; letter-spacing: -0.01em; }
+.who ul { margin: 0; padding-left: 1.1em; display: grid; gap: 8px; color: var(--text-2); }
+.who .gets { border-top: 1px dashed var(--line-strong); padding-top: 12px; font-size: var(--t-sm); color: var(--text); }
+.who .gets .label { display: block; margin-bottom: 4px; }
+
+/* Конвейер: настоящая последовательность этапов прогона */
+.flow { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0; border-top: 1px solid var(--line-strong); }
+.flow li { padding: 14px 14px 0 0; display: grid; gap: 6px; align-content: start; min-width: 0; }
+.flow li + li { padding-left: 14px; border-left: 1px solid var(--line); }
+.flow .n { font-family: var(--font-mono); font-size: var(--t-cap); color: var(--accent-text); }
+.flow b { font-weight: 600; font-size: .98rem; }
+.flow span { font-size: var(--t-sm); color: var(--text-2); line-height: 1.45; }
+
+/* Возможности: текст рядом с кадром */
+.feature { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 12fr); gap: 32px; align-items: start; padding-top: 28px; border-top: 1px solid var(--line); }
+.feature .txt { display: grid; gap: 12px; position: sticky; top: 84px; }
+.feature h3 { font-size: var(--t-h3); font-weight: 600; letter-spacing: -0.01em; }
+.feature p { color: var(--text-2); }
+.feature .stack { display: grid; gap: 20px; }
+.pair { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+
+/* Знаки из самого приложения: оценка по шкале НАТО и код доказательства */
+.grade { display: inline-flex; vertical-align: 1px; font: 500 .74rem/1 var(--font-mono); border-radius: 4px; overflow: hidden; }
+.grade i { font-style: normal; padding: 3px 5px; background: var(--grade-bg); color: var(--grade-fg); }
+.grade i + i { background: var(--grade2-bg); }
+.ev { font: 500 .8rem/1 var(--font-mono); color: var(--accent-text); background: var(--accent-subtle); padding: 3px 6px; border-radius: 4px; white-space: nowrap; }
+.light { color: var(--risk-red); font-weight: 600; white-space: nowrap; }
+.light::before { content: ""; display: inline-block; width: .6em; height: .6em; background: currentColor; transform: rotate(45deg); margin-right: .45em; vertical-align: .05em; }
+
+/* Наука */
+.sci { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; border-top: 1px solid var(--line-strong); }
+.sci article { padding: 20px 24px 20px 0; display: grid; gap: 8px; align-content: start; border-bottom: 1px solid var(--line); min-width: 0; }
+.sci article:nth-child(even) { padding-left: 24px; border-left: 1px solid var(--line); }
+.sci h3 { font-size: 1.05rem; font-weight: 600; display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.sci h3 .label { font-size: .7rem; }
+.sci p { color: var(--text-2); font-size: .95rem; }
+
+/* Сравнение */
+.cmp { border-top: 1px solid var(--line-strong); }
+.cmp-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 4fr) minmax(0, 4fr); gap: 24px; padding-block: 16px; border-bottom: 1px solid var(--line); }
+.cmp-row > * { min-width: 0; }
+.cmp-row.th { padding-block: 10px; }
+.cmp-row h3 { font-size: 1rem; font-weight: 600; }
+.cmp-row p { color: var(--text-2); font-size: .95rem; }
+.cmp-row p.us { color: var(--text); }
+.note { font-size: var(--t-sm); color: var(--text-3); max-width: var(--read); }
+
+/* Зрелость */
+.proof { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border-top: 1px solid var(--line-strong); }
+.proof li { padding: 16px 20px 16px 0; border-bottom: 1px solid var(--line); display: grid; gap: 4px; min-width: 0; }
+.proof li:not(:nth-child(3n+1)) { padding-left: 20px; border-left: 1px solid var(--line); }
+.proof b { font-weight: 600; }
+.proof span { color: var(--text-2); font-size: var(--t-sm); }
+
+footer { padding-top: 64px; }
+footer p { font-size: var(--t-sm); color: var(--text-3); max-width: var(--read); border-top: 1px solid var(--line); padding-top: 16px; }
+
+@media (max-width: 1000px) {
+  .flow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .flow li, .flow li + li { padding: 14px 14px 14px 0; border-left: 0; border-bottom: 1px solid var(--line); }
+  .flow li:nth-child(even) { padding-left: 14px; border-left: 1px solid var(--line); }
+  .feature { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .feature .txt { position: static; }
+  .proof { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .proof li, .proof li:not(:nth-child(3n+1)) { padding: 16px 20px 16px 0; border-left: 0; }
+  .proof li:nth-child(even) { padding-left: 20px; border-left: 1px solid var(--line); }
+}
+@media (max-width: 760px) {
+  .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fact:nth-child(3) { padding-left: 0; border-left: 0; }
+  .fact:nth-child(n+3) { border-top: 1px solid var(--line); }
+  .who, .sci { grid-template-columns: minmax(0, 1fr); }
+  .who article + article, .sci article:nth-child(even) { padding-left: 0; border-left: 0; }
+  .who article + article { border-top: 1px solid var(--line); }
+  .who article { padding-bottom: 20px; }
+  .cmp-row { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .cmp-row.th { display: none; }
+  .cmp-row p::before { display: block; font: 400 .7rem/1.6 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); content: attr(data-h); }
+  .pair { grid-template-columns: minmax(0, 1fr); }
+  .pair figure:last-child { max-width: 320px; }
+  .proof { grid-template-columns: minmax(0, 1fr); }
+  .proof li:nth-child(even) { padding-left: 0; border-left: 0; }
+}
+@media (max-width: 480px) {
+  .flow { grid-template-columns: minmax(0, 1fr); }
+  .flow li:nth-child(even) { padding-left: 0; border-left: 0; }
+  .hero { padding-top: 36px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .langs button { transition: background-color .15s, color .15s; }
+}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="wrap">
+    <div class="mark">OSINT-SHERL-Ok <span data-tag="ru">· для инвесторов</span><span data-tag="en" hidden>· investor brief</span><span data-tag="sr" hidden>· za investitore</span></div>
+    <div class="langs" role="group" aria-label="Язык / Language / Jezik">
+      <button type="button" id="lang-ru" data-lang="ru" aria-pressed="true">RU</button>
+      <button type="button" id="lang-en" data-lang="en" aria-pressed="false">EN</button>
+      <button type="button" id="lang-sr" data-lang="sr" aria-pressed="false">SR</button>
+    </div>
+  </div>
+</header>
+
+<!-- ============================== РУССКИЙ ============================== -->
+<main class="wrap" data-lang-block="ru" lang="ru">
+  <section class="hero">
+    <span class="label">Агентный ИИ · OSINT · due diligence лиц и компаний</span>
+    <h1>Расследование уровня аналитического отдела. За 45 минут. <em>С доказательством под каждой строкой.</em></h1>
+    <p class="lead">OSINT-SHERL-Ok — система агентного искусственного интеллекта для проверки людей и компаний по открытым источникам. Команда ИИ-агентов опрашивает реестры, суды, госзакупки, СМИ и списки риска, строит граф связей и пишет аналитическую записку. Каждое утверждение в ней подтверждено архивированным снимком источника и оценено по шкале достоверности НАТО.</p>
+    <div class="facts">
+      <div class="fact"><b>15–45 мин</b><span>полный прогон исследования по лицу или компании</span></div>
+      <div class="fact"><b>39 стран</b><span>реестры компаний опрашиваются автоматически, ещё 9 — с подсказкой для ручной проверки</span></div>
+      <div class="fact"><b>1,2 млн</b><span>записей санкций, PEP и розыска в локальной базе, проверка без выхода в сеть</span></div>
+      <div class="fact"><b>[E-n]</b><span>у каждого вывода ссылка на снимок источника с хешем SHA-256</span></div>
+    </div>
+    <figure>
+      <img class="shot" src="img/graph-dark.jpg" width="1800" height="1442" alt="Граф связей демо-компании в тёмной теме: владельцы, руководители, поставщики, покупатели, госконтракт, шкала времени связей" fetchpriority="high">
+      <figcaption>Граф связей демо-компании: владение, управление, поставки, госконтракты и шкала времени. Компания, люди и адреса на всех скриншотах вымышлены; снимки сделаны в работающем приложении.</figcaption>
+    </figure>
+  </section>
+
+  <section class="block" id="who-ru">
+    <div class="head">
+      <span class="label">Для кого</span>
+      <h2>Три аудитории, одна задача: решение, за которое не придётся оправдываться</h2>
+    </div>
+    <div class="who">
+      <article>
+        <h3>Политика и госуправление</h3>
+        <ul>
+          <li>Проверка кандидатов, советников и доноров до публичного решения.</li>
+          <li>Связи контрагентов с публичными должностными лицами (PEP) и санкционными лицами.</li>
+          <li>Наблюдение за упоминаниями в СМИ и изменениями в реестрах.</li>
+        </ul>
+        <p class="gets"><span class="label">Результат</span>Записка, которую можно отдать юристу и пресс-службе: у каждой фразы есть источник.</p>
+      </article>
+      <article>
+        <h3>Спецслужбы и правоохранительные органы</h3>
+        <ul>
+          <li>Установление личности по email, телефону, нику, IP-адресу, ФИО.</li>
+          <li>Цепочки владения через офшоры, массовые директора, общие адреса регистрации.</li>
+          <li>Режим strict: ни одного запроса к инфраструктуре объекта, ИИ выключен.</li>
+        </ul>
+        <p class="gets"><span class="label">Результат</span>Доказательная база с цепочкой хранения: снимок, SHA-256, скриншот, копия в Wayback Machine.</p>
+      </article>
+      <article>
+        <h3>Руководители компаний</h3>
+        <ul>
+          <li>Проверка контрагента перед контрактом, тендером, сделкой M&amp;A.</li>
+          <li>Финансы, суды, блокировки счетов, госзакупки, конечные владельцы.</li>
+          <li>Конкурентная разведка: поставщики, клиенты, рынок, вакансии, история сайта.</li>
+        </ul>
+        <p class="gets"><span class="label">Результат</span>Светофор риска и полная записка за один прогон, затем еженедельный мониторинг без затрат на ИИ.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="block" id="flow-ru">
+    <div class="head">
+      <span class="label">Как работает</span>
+      <h2>Мультиагентный конвейер с проверкой на каждом шаге</h2>
+      <p>Языковые модели здесь работают как штат исследователей, а их выводы проходят через независимые проверки, как в хорошей редакции.</p>
+    </div>
+    <ol class="flow">
+      <li><span class="n">01</span><b>Задание</b><span>ФИО, компания или идентификатор; режим OPSEC.</span></li>
+      <li><span class="n">02</span><b>План</b><span>ИИ раскладывает дело на направления: личность, корпоративный след, СМИ, связи, санкции и суды, однофамильцы.</span></li>
+      <li><span class="n">03</span><b>Агенты</b><span>Параллельные сессии собирают данные инструментами системы; каждая страница сохраняется снимком.</span></li>
+      <li><span class="n">04</span><b>Привязка</b><span>Заметка принята, только если дословная цитата найдена в снимке и указано основание привязки к объекту.</span></li>
+      <li><span class="n">05</span><b>Синтез и критик</b><span>Синтез ссылается только на проверенные заметки; критик сверяет каждый пункт с цитатами.</span></li>
+      <li><span class="n">06</span><b>Записка</b><span>15 разделов, оценки по шкале НАТО, PDF, версии с дайджестом доказательств.</span></li>
+      <li><span class="n">07</span><b>Мониторинг</b><span>Еженедельно: списки риска, новости, реестр, сайт.</span></li>
+    </ol>
+    <figure>
+      <img class="shot" src="img/research.jpg" width="1800" height="1125" alt="Табло прогона исследования: этапы, направления агентов, бюджет" loading="lazy">
+      <figcaption>Табло прогона: этапы конвейера, направления агентов с числом ходов и заметок, бюджет в долларах с мягким порогом. Стоимость каждого дела видна до цента.</figcaption>
+    </figure>
+  </section>
+
+  <section class="block" id="features-ru">
+    <div class="head">
+      <span class="label">Возможности</span>
+      <h2>Что видит аналитик</h2>
+    </div>
+
+    <div class="feature">
+      <div class="txt">
+        <h3>Сводка за минуту</h3>
+        <p>Выводы с оценкой надёжности <span class="grade"><i>A</i><i>2</i></span> и ссылкой на доказательство <span class="ev">[E-2]</span>. Риск-флаги объясняют, почему они стоят. Светофор горит по худшему флагу: <span class="light">Красный</span>.</p>
+        <p>Если проверка по спискам риска не выполнялась, система не зажжёт зелёный: она напишет «не определён» и назовёт причину.</p>
+      </div>
+      <figure>
+        <img class="shot" src="img/summary.jpg" width="1800" height="1125" alt="Сводка по делу: выводы с оценками, критик, риск-флаги" loading="lazy">
+        <figcaption>Сводка: выводы синтеза, итоги критика, светофор и риск-флаги с объяснением.</figcaption>
+      </figure>
+    </div>
+
+    <div class="feature">
+      <div class="txt">
+        <h3>Анализ связей и бенефициаров</h3>
+        <p>Детерминированные алгоритмы на графе, без ИИ: связанные контрагенты, массовые руководители, расчётные конечные владельцы, отметки списков риска на узлах, пересечения с другими делами.</p>
+        <p>Интерактивный граф: слои связей, фокус на окрестности, путь до объекта, путь по флагу риска, шкала времени.</p>
+      </div>
+      <div class="stack">
+        <figure>
+          <img class="shot" src="img/analysis.jpg" width="1800" height="601" alt="Находки анализа связей: связанные контрагенты, конечные владельцы, отметки PEP" loading="lazy">
+          <figcaption>Находки анализа: директор поставщика сидит в надзорном совете госзаказчика; владелец кипрского холдинга совпадает с записью PEP.</figcaption>
+        </figure>
+        <figure>
+          <img class="shot" src="img/graph.jpg" width="1800" height="1442" alt="Граф связей с открытой карточкой узла и путём по флагу" loading="lazy">
+          <figcaption>Карточка узла: отметка PEP «только по имени», факт с оценкой и ссылкой на реестр Кипра, путь до объекта.</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <div class="feature">
+      <div class="txt">
+        <h3>Аналитическая записка</h3>
+        <p>15 разделов: реквизиты, собственники и бенефициары, финансы, поставщики, покупатели, госконтракты, суды, риск-флаги, хронология, противоречия, выводы.</p>
+        <p>Сноски на полях: код источника, класс надёжности, цитата. Записка выгружается в PDF без обращений к сети; каждая версия фиксирует дайджест доказательств.</p>
+      </div>
+      <figure>
+        <img class="shot" src="img/dossier.jpg" width="1800" height="1125" alt="Досье: раздел собственников с оценками и сносками на полях" loading="lazy">
+        <figcaption>Досье: раздел «Собственники, бенефициары и руководство» со сносками на полях.</figcaption>
+      </figure>
+    </div>
+
+    <div class="feature">
+      <div class="txt">
+        <h3>Доказательства, а не ссылки</h3>
+        <p>По каждому источнику хранятся цитата, класс надёжности, время получения и хеш SHA-256 снимка. Страница, найденная аналитиком вручную, фиксируется тем же способом.</p>
+      </div>
+      <figure>
+        <img class="shot" src="img/sources.jpg" width="1800" height="1125" alt="Источники дела с открытой карточкой доказательства и цитатой" loading="lazy">
+        <figcaption>Карточка доказательства E-2: дословная цитата из реестра, оценка, SHA-256, заметки прогона.</figcaption>
+      </figure>
+    </div>
+
+    <div class="feature">
+      <div class="txt">
+        <h3>Мониторинг объекта</h3>
+        <p>Еженедельно система сама проверяет новые совпадения в списках риска, свежие публикации, изменения карточки в реестре («было → стало») и правки на сайте компании.</p>
+        <p>Мониторинг работает без ИИ, поэтому проверка ничего не стоит.</p>
+      </div>
+      <figure>
+        <img class="shot" src="img/monitor.jpg" width="1800" height="1125" alt="Лента изменений мониторинга: реестр, новости, списки риска, сайт" loading="lazy">
+        <figcaption>Лента изменений: новый прокурист в реестре, судебная новость, новое совпадение PEP, изменённый список партнёров на сайте.</figcaption>
+      </figure>
+    </div>
+
+    <div class="feature">
+      <div class="txt">
+        <h3>Инструмент для профессионала</h3>
+        <p>Командная палитра <span class="mono">⌘K</span>, клавиатурные аккорды, тёмная тема, плотный режим для больших таблиц. В локальной сети приложение открывается с телефона как PWA.</p>
+      </div>
+      <div class="pair">
+        <figure>
+          <img class="shot" src="img/palette.jpg" width="1800" height="1125" alt="Командная палитра поверх сводки дела" loading="lazy">
+          <figcaption>Палитра команд: переход к разделу дела или быстрая проверка.</figcaption>
+        </figure>
+        <figure>
+          <img class="shot" src="img/mobile.jpg" width="780" height="1688" alt="Сводка дела на экране телефона" loading="lazy">
+          <figcaption>Та же сводка на телефоне.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="science-ru">
+    <div class="head">
+      <span class="label">Технология</span>
+      <h2>Почему это не очередной чат-бот</h2>
+      <p>Языковые модели уверенно ошибаются, а в расследовании это недопустимо. Поэтому ИИ в системе ограничен архитектурой, а не честным словом.</p>
+    </div>
+    <div class="sci">
+      <article><h3>Заземлённые агенты <span class="label">grounded agents</span></h3><p>Агент работает только инструментами системы. Заметка без дословной цитаты из сохранённого снимка отвергается автоматически, фраза записки без ссылки <span class="ev">[E-n]</span> удаляется.</p></article>
+      <article><h3>Нейро-символическая схема <span class="label">neuro-symbolic</span></h3><p>Модель читает источники и пишет текст. Оценки, риск-флаги, светофор и индекс цифрового следа считают детерминированные правила, которые можно проверить и воспроизвести.</p></article>
+      <article><h3>Шкала достоверности НАТО <span class="label">AJP-2.1 · Admiralty</span></h3><p>Надёжность источника A–F и достоверность сведений 1–6, как в разведывательном анализе. Достоверность растёт только от независимых источников.</p></article>
+      <article><h3>Разрешение сущностей <span class="label">entity resolution</span></h3><p>Доказательства группируются по сильным признакам: дата рождения, номер компании, взаимные ссылки. Однофамильцы отделяются, и система называет, чем они отличаются.</p></article>
+      <article><h3>Графовая алгебра владения</h3><p>Доля конечного владельца считается как сумма по всем путям произведений долей вдоль цепочки, порог 25 %. Записка прямо говорит, что это расчёт по реестрам, а не реестр бенефициаров.</p></article>
+      <article><h3>Сверка противоречий</h3><p>Расхождения источников по дате рождения, статусу компании, руководителю и адресу выносятся отдельным разделом; адреса нормализуются между кириллицей и латиницей.</p></article>
+      <article><h3>Цепочка хранения <span class="label">chain of custody</span></h3><p>Снимок ответа, SHA-256, скриншот, копия в Wayback Machine. Метаданные PDF и офисных документов (автор, организация) тоже становятся доказательствами.</p></article>
+      <article><h3>OPSEC по умолчанию</h3><p>Три режима работы. В strict нет ни одного запроса к инфраструктуре объекта, ИИ отключён, текст доказательств не покидает машину аналитика.</p></article>
+    </div>
+  </section>
+
+  <section class="block" id="compare-ru">
+    <div class="head">
+      <span class="label">Сравнение</span>
+      <h2>Чем это отличается от того, что вы уже видели</h2>
+    </div>
+    <div class="cmp">
+      <div class="cmp-row th"><span class="label">Продукт</span><span class="label">Как устроен</span><span class="label">Отличие OSINT-SHERL-Ok</span></div>
+      <div class="cmp-row"><h3>Maltego</h3><p data-h="Как устроен">Граф строит аналитик: вручную запускает трансформы и сам делает выводы.</p><p class="us" data-h="Отличие">Агенты собирают данные сами; граф и выводы получаются из прогона, у каждого вывода есть оценка и источник.</p></div>
+      <div class="cmp-row"><h3>Palantir Gotham</h3><p data-h="Как устроен">Платформа интеграции внутренних данных организации. Внедрение занимает месяцы, бюджет корпоративный.</p><p class="us" data-h="Отличие">Работает с открытыми источниками в день установки, на ноутбуке аналитика.</p></div>
+      <div class="cmp-row"><h3>i2 Analyst's Notebook</h3><p data-h="Как устроен">Визуальный анализ данных, которые аналитик собрал и загрузил сам.</p><p class="us" data-h="Отличие">Данные собираются автоматически, а под каждым узлом графа лежит доказательство.</p></div>
+      <div class="cmp-row"><h3>SpiderFoot</h3><p data-h="Как устроен">Автоматическое сканирование цифрового следа, более 200 модулей; на выходе список находок.</p><p class="us" data-h="Отличие">На выходе записка с выводами, оценкой достоверности и отделёнными однофамильцами.</p></div>
+      <div class="cmp-row"><h3>LSEG World-Check</h3><p data-h="Как устроен">Платная база рисковых лиц для скрининга по имени.</p><p class="us" data-h="Отличие">Списки риска — одна из проверок; кроме них система исследует связи, финансы, суды и СМИ.</p></div>
+      <div class="cmp-row"><h3>Sayari</h3><p data-h="Как устроен">Глобальный граф корпоративных реестров по подписке.</p><p class="us" data-h="Отличие">Реестры 39 стран плюс суды, закупки, СМИ, сайты и документы; результат — готовая записка, а не только граф.</p></div>
+    </div>
+    <p class="note">Сравнение по модели работы, по открытым описаниям продуктов на октябрь 2026 года. Названия принадлежат их владельцам.</p>
+  </section>
+
+  <section class="block" id="proof-ru">
+    <div class="head">
+      <span class="label">Зрелость</span>
+      <h2>Работающий продукт, а не концепт</h2>
+    </div>
+    <ul class="proof">
+      <li><b>Три входа</b><span>Веб-интерфейс, консоль и JSON API делают одно и то же.</span></li>
+      <li><b>Более 2 300 автотестов</b><span>Включая браузерные сценарии интерфейса.</span></li>
+      <li><b>Локальная установка</b><span>Данные дел хранятся на машине аналитика.</span></li>
+      <li><b>Модели Claude</b><span>Через официальный Agent SDK; бюджет прогона ограничен и виден до цента.</span></li>
+      <li><b>Списки риска офлайн</b><span>Локальная база OpenSanctions обновляется сама раз в неделю.</span></li>
+      <li><b>Политика безопасности контента</b><span>Строгий CSP в интерфейсе, без внешних скриптов.</span></li>
+    </ul>
+  </section>
+
+  <footer><p>Демонстрационное дело «Aurora Signal d.o.o.»: все компании, люди, адреса и домены на скриншотах вымышлены, совпадения случайны. Скриншоты сделаны в работающем приложении на синтетических данных.</p></footer>
+</main>
+
+<!-- ============================== ENGLISH ============================== -->
+<main class="wrap" data-lang-block="en" lang="en" hidden>
+  <section class="hero">
+    <span class="label">Agentic AI · OSINT · due diligence on people and companies</span>
+    <h1>An intelligence unit's investigation. In 45 minutes. <em>With evidence behind every line.</em></h1>
+    <p class="lead">OSINT-SHERL-Ok is an agentic AI system for vetting people and companies from open sources. A team of AI agents queries registries, courts, public procurement, media and risk lists, builds a network of connections and writes an analytical report. Every statement in it is backed by an archived snapshot of the source and graded on the NATO reliability scale.</p>
+    <div class="facts">
+      <div class="fact"><b>15–45 min</b><span>for a full investigation run on a person or a company</span></div>
+      <div class="fact"><b>39 countries</b><span>company registries queried automatically, 9 more with guided manual checks</span></div>
+      <div class="fact"><b>1.2 M</b><span>sanctions, PEP and wanted-list records in a local database, checked offline</span></div>
+      <div class="fact"><b>[E-n]</b><span>every finding links to a source snapshot with a SHA-256 hash</span></div>
+    </div>
+    <figure>
+      <img class="shot" src="img/graph-dark.jpg" width="1800" height="1442" alt="Network graph of the demo company in dark theme: owners, managers, suppliers, customers, a public contract and a timeline of links" fetchpriority="high">
+      <figcaption>Network graph of a demo company: ownership, management, supply, public contracts and a timeline. The company, people and addresses in all screenshots are fictional; the screens are taken from the working application.</figcaption>
+    </figure>
+  </section>
+
+  <section class="block" id="who-en">
+    <div class="head">
+      <span class="label">Who it is for</span>
+      <h2>Three audiences, one need: a decision you will never have to explain away</h2>
+    </div>
+    <div class="who">
+      <article>
+        <h3>Politics and government</h3>
+        <ul>
+          <li>Vetting candidates, advisers and donors before a public decision.</li>
+          <li>Links between counterparties and politically exposed or sanctioned persons.</li>
+          <li>Watching media mentions and registry changes.</li>
+        </ul>
+        <p class="gets"><span class="label">Outcome</span>A report you can hand to counsel and to the press office: every sentence has a source.</p>
+      </article>
+      <article>
+        <h3>Intelligence and law enforcement</h3>
+        <ul>
+          <li>Identity resolution from email, phone, username, IP address or full name.</li>
+          <li>Ownership chains through offshore entities, nominee directors, shared registered addresses.</li>
+          <li>Strict mode: zero requests to the subject's infrastructure, AI switched off.</li>
+        </ul>
+        <p class="gets"><span class="label">Outcome</span>An evidence base with chain of custody: snapshot, SHA-256, screenshot, Wayback Machine copy.</p>
+      </article>
+      <article>
+        <h3>Corporate leadership</h3>
+        <ul>
+          <li>Counterparty checks before a contract, a tender or an M&amp;A deal.</li>
+          <li>Financials, litigation, frozen accounts, procurement, ultimate owners.</li>
+          <li>Competitive intelligence: suppliers, clients, market, hiring, website history.</li>
+        </ul>
+        <p class="gets"><span class="label">Outcome</span>A risk light and a full report from one run, then weekly monitoring at zero AI cost.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="block" id="flow-en">
+    <div class="head">
+      <span class="label">How it works</span>
+      <h2>A multi-agent pipeline with a check at every step</h2>
+      <p>Language models act as a staff of researchers, and their output passes independent checks, the way it would in a good newsroom.</p>
+    </div>
+    <ol class="flow">
+      <li><span class="n">01</span><b>Brief</b><span>A name, a company or an identifier; an OPSEC mode.</span></li>
+      <li><span class="n">02</span><b>Plan</b><span>AI splits the case into lines of inquiry: identity, corporate footprint, media, links, sanctions and courts, namesakes.</span></li>
+      <li><span class="n">03</span><b>Agents</b><span>Parallel sessions gather data through the system's tools; every page is stored as a snapshot.</span></li>
+      <li><span class="n">04</span><b>Attribution</b><span>A note is accepted only if its verbatim quote is found in the snapshot and its link to the subject is stated.</span></li>
+      <li><span class="n">05</span><b>Synthesis and critic</b><span>Synthesis cites verified notes only; a critic checks every item against its quotes.</span></li>
+      <li><span class="n">06</span><b>Report</b><span>15 sections, NATO-scale grades, PDF, versions with an evidence digest.</span></li>
+      <li><span class="n">07</span><b>Monitoring</b><span>Weekly: risk lists, news, registry, website.</span></li>
+    </ol>
+    <figure>
+      <img class="shot" src="img/research.jpg" width="1800" height="1125" alt="Investigation run board: stages, agent lines of inquiry, budget" loading="lazy">
+      <figcaption>Run board: pipeline stages, agent lines of inquiry with turns and notes, a dollar budget with a soft threshold. The cost of every case is visible to the cent. Interface language in the screenshots: Russian.</figcaption>
+    </figure>
+  </section>
+
+  <section class="block" id="features-en">
+    <div class="head">
+      <span class="label">Capabilities</span>
+      <h2>What the analyst sees</h2>
+    </div>
+
+    <div class="feature">
+      <div class="txt">
+        <h3>A one-minute summary</h3>
+        <p>Findings with a reliability grade <span class="grade"><i>A</i><i>2</i></span> and a link to the evidence <span class="ev">[E-2]</span>. Risk flags explain why they are raised. The risk light follows the worst flag: <span class="light">Red</span>.</p>
+        <p>If the risk-list check did not run, the system will not show green: it says "undetermined" and names the reason.</p>
+      </div>
+      <figure>
+        <img class="shot" src="img/summary.jpg" width="1800" height="1125" alt="Case summary: graded findings, critic, risk flags" loading="lazy">
+        <figcaption>Summary: synthesis findings, critic results, risk light and explained risk flags.</figcaption>
+      </figure>
+    </div>
+
+    <div class="feature">
+      <div class="txt">
+        <h3>Network and beneficial-ownership analysis</h3>
+        <p>Deterministic graph algorithms, no AI involved: connected counterparties, mass directors, computed ultimate owners, risk-list marks on nodes, overlaps with other cases.</p>
+        <p>An interactive graph: link layers, neighbourhood focus, path to the subject, path along a risk flag, timeline.</p>
+      </div>
+      <div class="stack">
+        <figure>
+          <img class="shot" src="img/analysis.jpg" width="1800" height="601" alt="Network analysis findings: connected counterparties, ultimate owners, PEP marks" loading="lazy">
+          <figcaption>Findings: a supplier's director sits on the supervisory board of the public customer; the owner of a Cypriot holding matches a PEP record.</figcaption>
+        </figure>
+        <figure>
+          <img class="shot" src="img/graph.jpg" width="1800" height="1442" alt="Network graph with an open node card and a path along a flag" loading="lazy">
+          <figcaption>Node card: a "name only" PEP mark, a graded fact citing the Cyprus registry, the path to the subject.</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <div class="feature">
+      <div class="txt">
+        <h3>The analytical report</h3>
+        <p>15 sections: corporate details, owners and beneficiaries, financials, suppliers, customers, public contracts, litigation, risk flags, timeline, contradictions, conclusions.</p>
+        <p>Margin notes give the source code, reliability class and quote. The report exports to PDF with no network access; each version records a digest of its evidence.</p>
+      </div>
+      <figure>
+        <img class="shot" src="img/dossier.jpg" width="1800" height="1125" alt="Dossier: owners section with grades and margin notes" loading="lazy">
+        <figcaption>Dossier: the "Owners, beneficiaries and management" section with margin notes.</figcaption>
+      </figure>
+    </div>
+
+    <div class="feature">
+      <div class="txt">
+        <h3>Evidence, not links</h3>
+        <p>For each source the system keeps the quote, reliability class, retrieval time and the SHA-256 hash of the snapshot. A page the analyst finds by hand is captured the same way.</p>
+      </div>
+      <figure>
+        <img class="shot" src="img/sources.jpg" width="1800" height="1125" alt="Case sources with an open evidence card and quote" loading="lazy">
+        <figcaption>Evidence card E-2: verbatim registry quote, grade, SHA-256, run notes.</figcaption>
+      </figure>
+    </div>
+
+    <div class="feature">
+      <div class="txt">
+        <h3>Subject monitoring</h3>
+        <p>Every week the system checks for new risk-list matches, fresh publications, registry changes ("before → after") and edits to the company website.</p>
+        <p>Monitoring runs without AI, so each check costs nothing.</p>
+      </div>
+      <figure>
+        <img class="shot" src="img/monitor.jpg" width="1800" height="1125" alt="Monitoring change feed: registry, news, risk lists, website" loading="lazy">
+        <figcaption>Change feed: a new authorised signatory in the registry, a court news item, a new PEP match, a changed partner list on the website.</figcaption>
+      </figure>
+    </div>
+
+    <div class="feature">
+      <div class="txt">
+        <h3>Built for professionals</h3>
+        <p>Command palette <span class="mono">⌘K</span>, keyboard chords, dark theme, a dense mode for large tables. On the local network the app opens on a phone as a PWA.</p>
+      </div>
+      <div class="pair">
+        <figure>
+          <img class="shot" src="img/palette.jpg" width="1800" height="1125" alt="Command palette over the case summary" loading="lazy">
+          <figcaption>Command palette: jump to a case section or run a quick check.</figcaption>
+        </figure>
+        <figure>
+          <img class="shot" src="img/mobile.jpg" width="780" height="1688" alt="Case summary on a phone screen" loading="lazy">
+          <figcaption>The same summary on a phone.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="science-en">
+    <div class="head">
+      <span class="label">Technology</span>
+      <h2>Why this is not another chatbot</h2>
+      <p>Language models make confident mistakes, and an investigation cannot afford them. So the AI in this system is constrained by its architecture, not by good intentions.</p>
+    </div>
+    <div class="sci">
+      <article><h3>Grounded agents <span class="label">tool-bound</span></h3><p>Agents act only through the system's tools. A note without a verbatim quote from a stored snapshot is rejected automatically; a report sentence without an <span class="ev">[E-n]</span> reference is removed.</p></article>
+      <article><h3>Neuro-symbolic design</h3><p>The model reads sources and writes prose. Grades, risk flags, the risk light and the footprint index come from deterministic rules that can be audited and reproduced.</p></article>
+      <article><h3>NATO reliability scale <span class="label">AJP-2.1 · Admiralty</span></h3><p>Source reliability A–F and information credibility 1–6, as in intelligence analysis. Credibility rises only with independent sources.</p></article>
+      <article><h3>Entity resolution</h3><p>Evidence is clustered by strong identifiers: date of birth, company number, mutual references. Namesakes are separated, and the system states what sets them apart.</p></article>
+      <article><h3>Ownership graph algebra</h3><p>An ultimate owner's share is the sum over all paths of the products of shares along the chain, with a 25 % threshold. The report states plainly that this is computed from registries and is not a beneficial-ownership register.</p></article>
+      <article><h3>Contradiction checks</h3><p>Conflicts between sources on date of birth, company status, director and address get their own section; addresses are normalised across Cyrillic and Latin scripts.</p></article>
+      <article><h3>Chain of custody</h3><p>Response snapshot, SHA-256, screenshot, Wayback Machine copy. Metadata of PDF and Office documents (author, organisation) becomes evidence too.</p></article>
+      <article><h3>OPSEC by default</h3><p>Three operating modes. In strict mode there are zero requests to the subject's infrastructure, AI is off, and evidence text never leaves the analyst's machine.</p></article>
+    </div>
+  </section>
+
+  <section class="block" id="compare-en">
+    <div class="head">
+      <span class="label">Comparison</span>
+      <h2>How it differs from what you have already seen</h2>
+    </div>
+    <div class="cmp">
+      <div class="cmp-row th"><span class="label">Product</span><span class="label">How it works</span><span class="label">Where OSINT-SHERL-Ok differs</span></div>
+      <div class="cmp-row"><h3>Maltego</h3><p data-h="How it works">The analyst builds the graph: runs transforms by hand and draws the conclusions.</p><p class="us" data-h="Difference">Agents collect the data themselves; the graph and findings come out of the run, each finding graded and sourced.</p></div>
+      <div class="cmp-row"><h3>Palantir Gotham</h3><p data-h="How it works">A platform for integrating an organisation's internal data. Deployment takes months, on an enterprise budget.</p><p class="us" data-h="Difference">Works with open sources on the day of installation, on the analyst's laptop.</p></div>
+      <div class="cmp-row"><h3>i2 Analyst's Notebook</h3><p data-h="How it works">Visual analysis of data the analyst has collected and loaded.</p><p class="us" data-h="Difference">Data is collected automatically, and every graph node rests on a piece of evidence.</p></div>
+      <div class="cmp-row"><h3>SpiderFoot</h3><p data-h="How it works">Automated footprint scanning with 200+ modules; the output is a list of findings.</p><p class="us" data-h="Difference">The output is a report with conclusions, credibility grades and namesakes set apart.</p></div>
+      <div class="cmp-row"><h3>LSEG World-Check</h3><p data-h="How it works">A paid database of risk-relevant persons for name screening.</p><p class="us" data-h="Difference">Risk lists are one check among many; the system also investigates links, financials, courts and media.</p></div>
+      <div class="cmp-row"><h3>Sayari</h3><p data-h="How it works">A global graph of corporate registries, by subscription.</p><p class="us" data-h="Difference">Registries of 39 countries plus courts, procurement, media, websites and documents; the result is a finished report, not only a graph.</p></div>
+    </div>
+    <p class="note">Comparison by operating model, based on public product descriptions as of October 2026. Product names belong to their owners.</p>
+  </section>
+
+  <section class="block" id="proof-en">
+    <div class="head">
+      <span class="label">Maturity</span>
+      <h2>A working product, not a concept</h2>
+    </div>
+    <ul class="proof">
+      <li><b>Three entry points</b><span>Web interface, command line and JSON API do the same job.</span></li>
+      <li><b>2,300+ automated tests</b><span>Including browser scenarios for the interface.</span></li>
+      <li><b>On-premises</b><span>Case data stays on the analyst's machine.</span></li>
+      <li><b>Claude models</b><span>Through the official Agent SDK; the run budget is capped and visible to the cent.</span></li>
+      <li><b>Offline risk lists</b><span>The local OpenSanctions database updates itself weekly.</span></li>
+      <li><b>Content Security Policy</b><span>A strict CSP in the interface, no third-party scripts.</span></li>
+    </ul>
+  </section>
+
+  <footer><p>Demo case "Aurora Signal d.o.o.": all companies, people, addresses and domains in the screenshots are fictional; any resemblance is coincidental. Screenshots were taken in the working application on synthetic data.</p></footer>
+</main>
+
+<!-- ============================== SRPSKI (latinica) ============================== -->
+<main class="wrap" data-lang-block="sr" lang="sr-Latn" hidden>
+  <section class="hero">
+    <span class="label">Agentska veštačka inteligencija · OSINT · provera lica i kompanija</span>
+    <h1>Istraga na nivou analitičkog odeljenja. Za 45 minuta. <em>Sa dokazom iza svakog reda.</em></h1>
+    <p class="lead">OSINT-SHERL-Ok je sistem agentske veštačke inteligencije za proveru lica i kompanija iz otvorenih izvora. Tim AI agenata pretražuje registre, sudove, javne nabavke, medije i liste rizika, gradi mrežu veza i piše analitički izveštaj. Svaka tvrdnja u njemu potkrepljena je arhiviranim snimkom izvora i ocenjena po NATO skali pouzdanosti.</p>
+    <div class="facts">
+      <div class="fact"><b>15–45 min</b><span>za kompletnu istragu o licu ili kompaniji</span></div>
+      <div class="fact"><b>39 zemalja</b><span>registri privrednih subjekata pretražuju se automatski, još 9 uz uputstvo za ručnu proveru</span></div>
+      <div class="fact"><b>1,2 mil.</b><span>zapisa o sankcijama, funkcionerima (PEP) i poternicama u lokalnoj bazi, provera bez interneta</span></div>
+      <div class="fact"><b>[E-n]</b><span>svaki nalaz vodi do snimka izvora sa SHA-256 heš vrednošću</span></div>
+    </div>
+    <figure>
+      <img class="shot" src="img/graph-dark.jpg" width="1800" height="1442" alt="Mreža veza demo kompanije u tamnoj temi: vlasnici, rukovodioci, dobavljači, kupci, javni ugovor i vremenska osa veza" fetchpriority="high">
+      <figcaption>Mreža veza demo kompanije: vlasništvo, upravljanje, nabavke, javni ugovori i vremenska osa. Kompanija, lica i adrese na svim snimcima ekrana su izmišljeni; snimci su napravljeni u aplikaciji koja radi.</figcaption>
+    </figure>
+  </section>
+
+  <section class="block" id="who-sr">
+    <div class="head">
+      <span class="label">Za koga</span>
+      <h2>Tri publike, jedna potreba: odluka koju nikada nećete morati da pravdate</h2>
+    </div>
+    <div class="who">
+      <article>
+        <h3>Politika i državna uprava</h3>
+        <ul>
+          <li>Provera kandidata, savetnika i donatora pre javne odluke.</li>
+          <li>Veze partnera sa funkcionerima (PEP) i licima pod sankcijama.</li>
+          <li>Praćenje pominjanja u medijima i promena u registrima.</li>
+        </ul>
+        <p class="gets"><span class="label">Rezultat</span>Izveštaj koji možete predati pravnicima i službi za odnose s javnošću: svaka rečenica ima izvor.</p>
+      </article>
+      <article>
+        <h3>Službe bezbednosti i organi reda</h3>
+        <ul>
+          <li>Utvrđivanje identiteta preko e-pošte, telefona, korisničkog imena, IP adrese ili imena i prezimena.</li>
+          <li>Lanci vlasništva preko ofšor firmi, fiktivni direktori, zajedničke adrese sedišta.</li>
+          <li>Režim strict: nijedan zahtev ka infrastrukturi subjekta, veštačka inteligencija isključena.</li>
+        </ul>
+        <p class="gets"><span class="label">Rezultat</span>Dokazna osnova sa lancem čuvanja: snimak, SHA-256, snimak ekrana, kopija u Wayback Machine.</p>
+      </article>
+      <article>
+        <h3>Rukovodioci kompanija</h3>
+        <ul>
+          <li>Provera partnera pre ugovora, tendera ili M&amp;A transakcije.</li>
+          <li>Finansije, sudski sporovi, blokade računa, javne nabavke, stvarni vlasnici.</li>
+          <li>Konkurentska analiza: dobavljači, klijenti, tržište, oglasi za posao, istorija sajta.</li>
+        </ul>
+        <p class="gets"><span class="label">Rezultat</span>Semafor rizika i kompletan izveštaj iz jedne istrage, zatim nedeljni monitoring bez troškova za AI.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="block" id="flow-sr">
+    <div class="head">
+      <span class="label">Kako radi</span>
+      <h2>Višeagentni proces sa proverom na svakom koraku</h2>
+      <p>Jezički modeli rade kao tim istraživača, a njihovi zaključci prolaze nezavisne provere, kao u dobroj redakciji.</p>
+    </div>
+    <ol class="flow">
+      <li><span class="n">01</span><b>Zadatak</b><span>Ime i prezime, kompanija ili identifikator; OPSEC režim.</span></li>
+      <li><span class="n">02</span><b>Plan</b><span>AI deli slučaj na pravce: identitet, korporativni trag, mediji, veze, sankcije i sudovi, imenjaci.</span></li>
+      <li><span class="n">03</span><b>Agenti</b><span>Paralelne sesije prikupljaju podatke alatima sistema; svaka stranica se čuva kao snimak.</span></li>
+      <li><span class="n">04</span><b>Povezivanje</b><span>Beleška se prihvata samo ako je doslovni citat pronađen u snimku i naveden osnov veze sa subjektom.</span></li>
+      <li><span class="n">05</span><b>Sinteza i kritičar</b><span>Sinteza se poziva samo na proverene beleške; kritičar proverava svaku stavku prema citatima.</span></li>
+      <li><span class="n">06</span><b>Izveštaj</b><span>15 poglavlja, ocene po NATO skali, PDF, verzije sa sažetkom dokaza.</span></li>
+      <li><span class="n">07</span><b>Monitoring</b><span>Nedeljno: liste rizika, vesti, registar, sajt.</span></li>
+    </ol>
+    <figure>
+      <img class="shot" src="img/research.jpg" width="1800" height="1125" alt="Tabla istrage: faze, pravci agenata, budžet" loading="lazy">
+      <figcaption>Tabla istrage: faze procesa, pravci agenata sa brojem koraka i beležaka, budžet u dolarima sa mekim pragom. Trošak svakog slučaja vidi se do centa. Jezik interfejsa na snimcima: ruski.</figcaption>
+    </figure>
+  </section>
+
+  <section class="block" id="features-sr">
+    <div class="head">
+      <span class="label">Mogućnosti</span>
+      <h2>Šta analitičar vidi</h2>
+    </div>
+
+    <div class="feature">
+      <div class="txt">
+        <h3>Pregled za jedan minut</h3>
+        <p>Nalazi sa ocenom pouzdanosti <span class="grade"><i>A</i><i>2</i></span> i vezom ka dokazu <span class="ev">[E-2]</span>. Zastavice rizika objašnjavaju zašto su podignute. Semafor prati najgoru zastavicu: <span class="light">Crveno</span>.</p>
+        <p>Ako provera lista rizika nije izvršena, sistem neće prikazati zeleno: napisaće „nije utvrđeno” i navesti razlog.</p>
+      </div>
+      <figure>
+        <img class="shot" src="img/summary.jpg" width="1800" height="1125" alt="Pregled slučaja: ocenjeni nalazi, kritičar, zastavice rizika" loading="lazy">
+        <figcaption>Pregled: nalazi sinteze, rezultati kritičara, semafor i objašnjene zastavice rizika.</figcaption>
+      </figure>
+    </div>
+
+    <div class="feature">
+      <div class="txt">
+        <h3>Analiza veza i stvarnih vlasnika</h3>
+        <p>Deterministički algoritmi nad grafom, bez veštačke inteligencije: povezani partneri, masovni direktori, izračunati stvarni vlasnici, oznake lista rizika na čvorovima, preklapanja sa drugim slučajevima.</p>
+        <p>Interaktivni graf: slojevi veza, fokus na okruženje, put do subjekta, put po zastavici rizika, vremenska osa.</p>
+      </div>
+      <div class="stack">
+        <figure>
+          <img class="shot" src="img/analysis.jpg" width="1800" height="601" alt="Nalazi analize veza: povezani partneri, stvarni vlasnici, PEP oznake" loading="lazy">
+          <figcaption>Nalazi: direktor dobavljača sedi u nadzornom odboru javnog naručioca; vlasnik kiparskog holdinga poklapa se sa PEP zapisom.</figcaption>
+        </figure>
+        <figure>
+          <img class="shot" src="img/graph.jpg" width="1800" height="1442" alt="Mreža veza sa otvorenom karticom čvora i putem po zastavici" loading="lazy">
+          <figcaption>Kartica čvora: PEP oznaka „samo po imenu”, ocenjena činjenica sa vezom ka kiparskom registru, put do subjekta.</figcaption>
+        </figure>
+      </div>
+    </div>
+
+    <div class="feature">
+      <div class="txt">
+        <h3>Analitički izveštaj</h3>
+        <p>15 poglavlja: osnovni podaci, vlasnici i stvarni vlasnici, finansije, dobavljači, kupci, javni ugovori, sudski sporovi, zastavice rizika, hronologija, protivrečnosti, zaključci.</p>
+        <p>Beleške na marginama daju šifru izvora, klasu pouzdanosti i citat. Izveštaj se izvozi u PDF bez pristupa mreži; svaka verzija beleži sažetak dokaza.</p>
+      </div>
+      <figure>
+        <img class="shot" src="img/dossier.jpg" width="1800" height="1125" alt="Dosije: poglavlje o vlasnicima sa ocenama i beleškama na marginama" loading="lazy">
+        <figcaption>Dosije: poglavlje „Vlasnici, stvarni vlasnici i rukovodstvo” sa beleškama na marginama.</figcaption>
+      </figure>
+    </div>
+
+    <div class="feature">
+      <div class="txt">
+        <h3>Dokazi, ne linkovi</h3>
+        <p>Za svaki izvor sistem čuva citat, klasu pouzdanosti, vreme preuzimanja i SHA-256 heš snimka. Stranica koju analitičar pronađe ručno beleži se na isti način.</p>
+      </div>
+      <figure>
+        <img class="shot" src="img/sources.jpg" width="1800" height="1125" alt="Izvori slučaja sa otvorenom karticom dokaza i citatom" loading="lazy">
+        <figcaption>Kartica dokaza E-2: doslovni citat iz registra, ocena, SHA-256, beleške istrage.</figcaption>
+      </figure>
+    </div>
+
+    <div class="feature">
+      <div class="txt">
+        <h3>Praćenje subjekta</h3>
+        <p>Sistem svake nedelje proverava nova poklapanja na listama rizika, nove objave, promene u registru („bilo → sada”) i izmene na sajtu kompanije.</p>
+        <p>Monitoring radi bez veštačke inteligencije, pa provera ništa ne košta.</p>
+      </div>
+      <figure>
+        <img class="shot" src="img/monitor.jpg" width="1800" height="1125" alt="Feed promena: registar, vesti, liste rizika, sajt" loading="lazy">
+        <figcaption>Feed promena: novi prokurista u registru, vest o sudskom postupku, novo PEP poklapanje, izmenjena lista partnera na sajtu.</figcaption>
+      </figure>
+    </div>
+
+    <div class="feature">
+      <div class="txt">
+        <h3>Alat za profesionalce</h3>
+        <p>Paleta komandi <span class="mono">⌘K</span>, prečice sa tastature, tamna tema, gust prikaz za velike tabele. U lokalnoj mreži aplikacija se otvara na telefonu kao PWA.</p>
+      </div>
+      <div class="pair">
+        <figure>
+          <img class="shot" src="img/palette.jpg" width="1800" height="1125" alt="Paleta komandi preko pregleda slučaja" loading="lazy">
+          <figcaption>Paleta komandi: prelaz na deo slučaja ili brza provera.</figcaption>
+        </figure>
+        <figure>
+          <img class="shot" src="img/mobile.jpg" width="780" height="1688" alt="Pregled slučaja na ekranu telefona" loading="lazy">
+          <figcaption>Isti pregled na telefonu.</figcaption>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="science-sr">
+    <div class="head">
+      <span class="label">Tehnologija</span>
+      <h2>Zašto ovo nije još jedan četbot</h2>
+      <p>Jezički modeli greše samouvereno, a istraga to ne sme da dozvoli. Zato je veštačka inteligencija u sistemu ograničena arhitekturom, a ne dobrom voljom.</p>
+    </div>
+    <div class="sci">
+      <article><h3>Utemeljeni agenti <span class="label">grounded agents</span></h3><p>Agenti rade isključivo alatima sistema. Beleška bez doslovnog citata iz sačuvanog snimka automatski se odbacuje; rečenica izveštaja bez reference <span class="ev">[E-n]</span> se briše.</p></article>
+      <article><h3>Neuro-simbolička arhitektura</h3><p>Model čita izvore i piše tekst. Ocene, zastavice rizika, semafor i indeks digitalnog traga računaju deterministička pravila koja se mogu proveriti i ponoviti.</p></article>
+      <article><h3>NATO skala pouzdanosti <span class="label">AJP-2.1 · Admiralty</span></h3><p>Pouzdanost izvora A–F i verodostojnost informacije 1–6, kao u obaveštajnoj analizi. Verodostojnost raste samo sa nezavisnim izvorima.</p></article>
+      <article><h3>Razrešavanje entiteta <span class="label">entity resolution</span></h3><p>Dokazi se grupišu po jakim obeležjima: datum rođenja, matični broj kompanije, uzajamne reference. Imenjaci se izdvajaju, a sistem navodi po čemu se razlikuju.</p></article>
+      <article><h3>Algebra vlasničkog grafa</h3><p>Udeo stvarnog vlasnika računa se kao zbir proizvoda udela duž svih puteva u lancu, uz prag od 25 %. Izveštaj jasno navodi da je to proračun iz registara, a ne registar stvarnih vlasnika.</p></article>
+      <article><h3>Provera protivrečnosti</h3><p>Razlike među izvorima u datumu rođenja, statusu kompanije, direktoru i adresi dobijaju posebno poglavlje; adrese se normalizuju između ćirilice i latinice.</p></article>
+      <article><h3>Lanac čuvanja dokaza <span class="label">chain of custody</span></h3><p>Snimak odgovora, SHA-256, snimak ekrana, kopija u Wayback Machine. Metapodaci PDF i Office dokumenata (autor, organizacija) takođe postaju dokazi.</p></article>
+      <article><h3>OPSEC kao podrazumevano</h3><p>Tri režima rada. U režimu strict nema nijednog zahteva ka infrastrukturi subjekta, AI je isključen, a tekst dokaza ne napušta računar analitičara.</p></article>
+    </div>
+  </section>
+
+  <section class="block" id="compare-sr">
+    <div class="head">
+      <span class="label">Poređenje</span>
+      <h2>Po čemu se razlikuje od onoga što ste već videli</h2>
+    </div>
+    <div class="cmp">
+      <div class="cmp-row th"><span class="label">Proizvod</span><span class="label">Kako radi</span><span class="label">Razlika OSINT-SHERL-Ok</span></div>
+      <div class="cmp-row"><h3>Maltego</h3><p data-h="Kako radi">Graf gradi analitičar: ručno pokreće transformacije i sam izvodi zaključke.</p><p class="us" data-h="Razlika">Agenti sami prikupljaju podatke; graf i nalazi nastaju iz istrage, svaki nalaz ima ocenu i izvor.</p></div>
+      <div class="cmp-row"><h3>Palantir Gotham</h3><p data-h="Kako radi">Platforma za integraciju internih podataka organizacije. Uvođenje traje mesecima, uz korporativni budžet.</p><p class="us" data-h="Razlika">Radi sa otvorenim izvorima istog dana kada se instalira, na laptopu analitičara.</p></div>
+      <div class="cmp-row"><h3>i2 Analyst's Notebook</h3><p data-h="Kako radi">Vizuelna analiza podataka koje je analitičar sam prikupio i učitao.</p><p class="us" data-h="Razlika">Podaci se prikupljaju automatski, a iza svakog čvora grafa stoji dokaz.</p></div>
+      <div class="cmp-row"><h3>SpiderFoot</h3><p data-h="Kako radi">Automatsko skeniranje digitalnog traga sa više od 200 modula; rezultat je spisak nalaza.</p><p class="us" data-h="Razlika">Rezultat je izveštaj sa zaključcima, ocenama verodostojnosti i izdvojenim imenjacima.</p></div>
+      <div class="cmp-row"><h3>LSEG World-Check</h3><p data-h="Kako radi">Plaćena baza rizičnih lica za proveru po imenu.</p><p class="us" data-h="Razlika">Liste rizika su samo jedna od provera; sistem istražuje i veze, finansije, sudove i medije.</p></div>
+      <div class="cmp-row"><h3>Sayari</h3><p data-h="Kako radi">Globalni graf korporativnih registara, uz pretplatu.</p><p class="us" data-h="Razlika">Registri 39 zemalja plus sudovi, nabavke, mediji, sajtovi i dokumenti; rezultat je gotov izveštaj, a ne samo graf.</p></div>
+    </div>
+    <p class="note">Poređenje prema modelu rada, na osnovu javnih opisa proizvoda zaključno sa oktobrom 2026. Nazivi pripadaju njihovim vlasnicima.</p>
+  </section>
+
+  <section class="block" id="proof-sr">
+    <div class="head">
+      <span class="label">Zrelost</span>
+      <h2>Proizvod koji radi, a ne koncept</h2>
+    </div>
+    <ul class="proof">
+      <li><b>Tri ulaza</b><span>Veb interfejs, komandna linija i JSON API rade isti posao.</span></li>
+      <li><b>Više od 2.300 automatskih testova</b><span>Uključujući scenarije interfejsa u pregledaču.</span></li>
+      <li><b>Lokalna instalacija</b><span>Podaci slučajeva ostaju na računaru analitičara.</span></li>
+      <li><b>Claude modeli</b><span>Preko zvaničnog Agent SDK; budžet istrage je ograničen i vidljiv do centa.</span></li>
+      <li><b>Liste rizika bez interneta</b><span>Lokalna OpenSanctions baza ažurira se sama jednom nedeljno.</span></li>
+      <li><b>Politika bezbednosti sadržaja</b><span>Strogi CSP u interfejsu, bez skripti trećih strana.</span></li>
+    </ul>
+  </section>
+
+  <footer><p>Demo slučaj „Aurora Signal d.o.o.”: sve kompanije, lica, adrese i domeni na snimcima ekrana su izmišljeni; svaka sličnost je slučajna. Snimci su napravljeni u aplikaciji koja radi, na sintetičkim podacima.</p></footer>
+</main>
+
+<script>
+(function () {
+  var LANGS = ["ru", "en", "sr"];
+  var HTML_LANG = { ru: "ru", en: "en", sr: "sr-Latn" };
+  function pick(lang, push) {
+    if (LANGS.indexOf(lang) < 0) lang = "ru";
+    document.querySelectorAll("[data-lang-block]").forEach(function (el) { el.hidden = el.getAttribute("data-lang-block") !== lang; });
+    document.querySelectorAll("[data-tag]").forEach(function (el) { el.hidden = el.getAttribute("data-tag") !== lang; });
+    document.querySelectorAll(".langs button").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-lang") === lang)); });
+    document.documentElement.lang = HTML_LANG[lang];
+    try { localStorage.setItem("osint-brief-lang", lang); } catch (e) {}
+    if (push) { try { history.replaceState(null, "", "#" + lang); } catch (e) {} }
+  }
+  document.querySelectorAll(".langs button").forEach(function (b) {
+    b.addEventListener("click", function () { pick(b.getAttribute("data-lang"), true); window.scrollTo({ top: 0 }); });
+  });
+  var fromHash = (location.hash || "").replace("#", "");
+  var saved = null;
+  try { saved = localStorage.getItem("osint-brief-lang"); } catch (e) {}
+  if (LANGS.indexOf(fromHash) >= 0) pick(fromHash, false);
+  else if (saved) pick(saved, false);
+  else {
+    var nav = (navigator.language || "ru").toLowerCase();
+    pick(nav.indexOf("sr") === 0 || nav.indexOf("hr") === 0 || nav.indexOf("bs") === 0 ? "sr" : nav.indexOf("ru") === 0 ? "ru" : nav.indexOf("en") === 0 ? "en" : "ru", false);
+  }
+  window.addEventListener("hashchange", function () { var h = location.hash.replace("#", ""); if (LANGS.indexOf(h) >= 0) pick(h, false); });
+})();
+</script>
+</body>
+</html>
